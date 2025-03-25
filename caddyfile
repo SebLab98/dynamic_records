@@ -1,0 +1,10 @@
+{
+    dynamic_records {
+        address public.seblab.net
+
+        # cname nas.seblab.net
+    }
+
+    dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+}
+
