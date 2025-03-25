@@ -1,4 +1,4 @@
-module managed_dns
+module github.com/SebLab98/dynamic_records
 
 go 1.24.1
 
