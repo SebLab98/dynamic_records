@@ -1,4 +1,4 @@
-module dynamic_record
+module github.com/SebLab98/dynamic_records
 
 go 1.22.3
 
