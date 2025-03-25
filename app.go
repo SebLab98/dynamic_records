@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"time"
 
-	"managed_dns/records"
+	"github.com/SebLab98/dynamic_records/records"
 
 	"github.com/caddyserver/caddy/v2"
 	"go.uber.org/zap"
