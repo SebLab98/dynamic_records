@@ -1,10 +1,23 @@
 {
-    dynamic_records {
-        address public.seblab.net
+    managed_dns {
+        address seblab.net,private {
+            provider cloudflare irkzSuQCj7i9fZTkI7xqXneUk6M73BlHtN1o44Mm
+            # ip_source interface ens6p18
+            # versions ipv6
+            check_interval 10s
+            # delete_after_use
+            # ttl 20m
+        }
+
+        address seblab.net,public {
+            provider cloudflare irkzSuQCj7i9fZTkI7xqXneUk6M73BlHtN1o44Mm
+            # ip_source interface ens6p18
+            # versions ipv6
+            check_interval 5s
+            # ttl 20m
+        }
 
         # cname nas.seblab.net
     }
-
-    dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 }
 

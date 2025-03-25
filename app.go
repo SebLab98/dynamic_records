@@ -1,4 +1,4 @@
-package dynamicrecords
+package managed_dns
 
 import (
 
@@ -6,34 +6,23 @@ import (
 
 	"encoding/json"
 	"fmt"
+	"time"
+
+	"managed_dns/records"
 
 	"github.com/caddyserver/caddy/v2"
 	"go.uber.org/zap"
-
-	// "github.com/libdns/libdns"
-	"github.com/caddy-dns/cloudflare"
 )
 
 func init() {
 	caddy.RegisterModule(App{})
-	// httpcaddyfile.RegisterGlobalOption("dynamic_records", parseApp)
 }
 
 // App provides a range of IP address prefixes (CIDRs) retrieved from cloudflare.
 type App struct {
-	Records []Record
+	RecordsRaw []json.RawMessage `json:"records" caddy:"namespace=managed_dns.record inline_key=type"`
 
-	RecordsRaw json.RawMessage `json:"record,omitempty" caddy:"namespace=dynamic_records inline_key=type"`
-
-	// The configuration for the DNS provider with which the DNS
-	// records will be updated.
-	DNSProviderRaw json.RawMessage `json:"dns_provider,omitempty" caddy:"namespace=dns.providers inline_key=name"`
-
-	// How frequently to check the public IP address. Default: 30m
-	CheckInterval caddy.Duration `json:"check_interval,omitempty"`
-
-	// The TTL to set on DNS records.
-	TTL caddy.Duration `json:"ttl,omitempty"`
+	records []records.Record
 
 	ctx    caddy.Context
 	logger *zap.Logger
@@ -42,7 +31,7 @@ type App struct {
 // CaddyModule returns the Caddy module information.
 func (App) CaddyModule() caddy.ModuleInfo {
 	return caddy.ModuleInfo{
-		ID:  "dynamic_records",
+		ID:  "managed_dns",
 		New: func() caddy.Module { return new(App) },
 	}
 }
@@ -52,13 +41,25 @@ func (a *App) Provision(ctx caddy.Context) error {
 	a.ctx = ctx
 	a.logger = ctx.Logger(a)
 
+	// set up the Records to manage
+	if a.RecordsRaw != nil {
+		vals, err := ctx.LoadModule(a, "RecordsRaw")
+		if err != nil {
+			return fmt.Errorf("loading Records module: %v", err)
+		}
+		for _, val := range vals.([]interface{}) {
+			a.records = append(a.records, val.(records.Record))
+		}
+	}
+
 	return nil
 }
 
 // Start starts the app module.
 func (a App) Start() error {
-	provider := new(cloudflare.Provider)
-	fmt.Println(provider.APIToken)
+	for _, r := range a.records {
+		go checkerLoop(a.ctx, r)
+	}
 
 	return nil
 }
@@ -66,6 +67,24 @@ func (a App) Start() error {
 // Stop stops the app module.
 func (a App) Stop() error {
 	return nil
+}
+
+// checkerLoop checks and updates records at every check
+// interval. It stops when ctx is cancelled.
+func checkerLoop(ctx caddy.Context, r records.Record) {
+	ticker := time.NewTicker(time.Duration(r.GetConfig().CheckInterval))
+	defer ticker.Stop()
+
+	// a.checkIPAndUpdateDNS()
+
+	for {
+		select {
+		case <-ticker.C:
+			// a.checkIPAndUpdateDNS()
+		case <-ctx.Done():
+			return
+		}
+	}
 }
 
 // Interface guards

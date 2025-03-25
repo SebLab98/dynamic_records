@@ -12,31 +12,29 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package dynamicrecords
+package managed_dns
 
 import (
-	"fmt"
-
 	"github.com/caddyserver/caddy/v2/caddyconfig"
 	"github.com/caddyserver/caddy/v2/caddyconfig/caddyfile"
 	"github.com/caddyserver/caddy/v2/caddyconfig/httpcaddyfile"
 )
 
 func init() {
-	httpcaddyfile.RegisterGlobalOption("dynamic_records", parseApp)
+	httpcaddyfile.RegisterGlobalOption("managed_dns", parseApp)
 }
 
-// parseAppGlobal configures the "dynamic_records" global option from Caddyfile.
+// parseApp configures the "managed_dns" global option from Caddyfile.
 // Syntax:
 //
-//	dynamic_records {
-//		<hostname>, <hostname>, ... {
+//	managed_dns {
+//		<record_type> <zone> <name> {
 //			provider <name> ...
-//			ip_source upnp|simple_http <endpoint>
-//			versions ipv4|ipv6
 //			check_interval <duration>
 //			ttl <duration>
+//			...
 //		}
+//		...
 //	}
 //
 // If <names...> are omitted after <zone>, then "@" will be assumed.
@@ -50,21 +48,17 @@ func parseApp(d *caddyfile.Dispenser, _ interface{}) (interface{}, error) {
 
 	// handle the block
 	for d.NextBlock(0) {
-		fmt.Println(d.Val())
-
 		recordType := d.Val()
-		modID := "dynamic_records." + recordType
+		modID := "managed_dns.record." + recordType
 		unm, err := caddyfile.UnmarshalModule(d, modID)
 		if err != nil {
 			return nil, err
 		}
-		app.RecordsRaw = caddyconfig.JSONModuleObject(unm, "type", recordType, nil)
+		app.RecordsRaw = append(app.RecordsRaw, caddyconfig.JSONModuleObject(unm, "type", recordType, nil))
 	}
 
-	fmt.Println(caddyconfig.JSON(app, nil))
-
 	return httpcaddyfile.App{
-		Name:  "dynamic_records",
+		Name:  "managed_dns",
 		Value: caddyconfig.JSON(app, nil),
 	}, nil
 }
